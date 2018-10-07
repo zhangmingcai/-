@@ -1,0 +1,51 @@
+.wrap{
+	position: relative;
+	max-height: 400px;
+	overflow: hidden;
+}
+.wrap img{
+	width:100%;
+}
+.wrap div{
+	position: absolute;
+	text-align: right;
+	font-size: 50px;
+	letter-spacing: 10px;
+	top:100px;
+	width: 90%;
+	color:white;
+	font-weight:bold;
+}
+.wrap p{
+	position: absolute;
+	text-align: right;
+	font-size: 18px;
+	letter-spacing: 6px;
+	top:180px;
+	width: 90%;
+	color:white;
+}
+.ant-card-bordered {
+    display: inline-block;
+}
+
+@media (max-device-width : 475px){
+	.wrap p {
+	    font-size: 15px;
+	    top: 80px;
+	}
+	.wrap div {
+	    font-size: 42px;
+	    top: 19px;
+	}
+	.flip-clock-wrapper{
+		display: none;
+	}
+	.selectName{
+		margin-top: 28px!important;
+	}
+	.btnStart{
+		margin-top: 20px!important;
+		margin-bottom: 15px;
+	}
+} 
