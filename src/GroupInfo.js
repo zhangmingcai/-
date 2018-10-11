@@ -12,7 +12,8 @@ class GroupInfo extends Component {
 	}
 
 	render(){
-		if(this.props.inTime){
+		// 有分队结果了
+		if(this.props.result){
 			var itemA = this.props.result.teamA.map((it)=>
 			    <p key={it.playerId}>{it.name}</p>
 			)
@@ -38,7 +39,7 @@ class GroupInfo extends Component {
 			</div>
 				
 		}else{
-			var content = <p>每天中午12点公布分队结果哦~</p>
+			var content = <p>今天报名的人数太少啦，还不能正常分队，快招呼大家报名啦~</p>
 		}
 		return(
 			<div>

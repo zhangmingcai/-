@@ -64,7 +64,6 @@ class App extends Component {
             reportList  : [],
             result      : false,
             startDevide : false,
-            inTime      : false
         };
         
     }
@@ -82,25 +81,16 @@ class App extends Component {
         });
     }
     /*
-    如果有人在12点到13点之间进入页面等同于到12点决定是否分队
-    如果没有结果数据就生成存数据库，有就只是展示
+    如果有人在13点之间进入页面会查询报名球员列表
+    如果报名人数至少4个并点击报名
     */
     judgeTime(){
         var h = timeTody.getHours();
-        if(h > 11 && h < 13){
-            console.log('12点到13点进入页面展示或生成分组')
-            this.setState({
-                startDevide : true
-            })
+        if(h > 8 && h < 13){
             this.loadReportPlayers();
-        }else if(h > 8 && h < 13){
-            /*清除前一天的报名数据 展示截至目前报名数据*/
-            this.loadReportPlayers();
-            
         }else{
-            console.log('13点后进入页面提示每天12点更新结果不展示今天上午的报名列表')
+            console.log('13点后进入页面提示明天继续~')
             this.setState({
-                inTime : false,
                 reportList : []
             })
         }
@@ -139,9 +129,7 @@ class App extends Component {
         query.limit(20);
         /*
         每天第一个打开该页面就会先清除报名列表中前一天的数据
-        到点了而且报名人数大于一个人才会决定如何处理结果表数据是否更新
-        到点两人及以上才会分组，但是如果数据库已经有了当天的数据就不会存到数据库了，
-        也就是说分组每天只会到点存数据库一次！在分组只能等第二天或者清空结果表
+        有人点击报名 而且报名人数大于4个人才会分组存到数据库，
         */
         query.find({
             success:function(res){
@@ -173,13 +161,23 @@ class App extends Component {
                 ctx.setState({
                     reportList : resFilter
                 })
-                //到点调用 了才会为true
+                //点击报名 调用才会为true
                 if(ctx.state.startDevide){
-                    if(resFilter.length < 2){
-                        message.error('报名人数少于两人无法完成分队~', 4);
+                    if(resFilter.length < 4){
+                        console.log('报名人数少于4人暂时无法完成分队~');
                         return false;
                     }
                     ctx.startDevideGroup()
+                }else{
+                    if(resFilter.length > 3){
+                        ctx.queryResult((res)=>{
+                            console.log("分队记录-查询-成功",res[0].attributes.resultObj)
+                            // eslint-disable-next-line
+                            ctx.setState({
+                                result : res[0].attributes.resultObj
+                            })
+                        })
+                    }
                 }
             },
             erro:function(error){
@@ -216,6 +214,10 @@ class App extends Component {
     //开始分队，分离出一个报名队员列表数组
     startDevideGroup(){
         //报名参与的同学们
+        //不刷新页面多次点击报名会导致重复
+        leftPlayerList = [];
+        teamA = [];
+        teamB = []
         this.state.reportList.forEach((item)=>{
             leftPlayerList.push(item)
         })
@@ -357,6 +359,9 @@ class App extends Component {
                     }
                     setData.save(null, {
                         success: function(object) {
+                            ctx.setState({
+                                startDevide : true
+                            })
                             message.success('报名成功啦~球场见！', 4);
                             ctx.loadReportPlayers();
                         },
@@ -374,6 +379,22 @@ class App extends Component {
         })
         
     }
+    /*查询分队结果*/
+    queryResult(cb){
+        // eslint-disable-next-line
+        var ResultList = Bmob.Object.extend("resultList");
+        // eslint-disable-next-line        
+        var query = new Bmob.Query(ResultList); 
+        var ctx = this;
+        query.find({
+            success:function(res){
+                cb && cb(res)
+            },
+            erro:function(error){
+                alert("查询分队记录失败: " + error.code + " " + error.message);
+            }
+        })
+    }
     /*
     清除前一天的分队结果数据
     */
@@ -387,7 +408,7 @@ class App extends Component {
             success: function(object) {
                 object.destroy({
                     success: function(myObject) {
-                        console.log("今日之前的分组结果数据清除成功")
+                        console.log("分组结果数据清除成功")
                         cb()
                     },
                     error: function(myObject, error) {
@@ -404,48 +425,35 @@ class App extends Component {
     保存当天分队信息
     */
     saveDevideResult(){
+        let ctx = this;
         // eslint-disable-next-line
-        var ResultList = Bmob.Object.extend("resultList");
-        var setData = new ResultList()
-        // eslint-disable-next-line        
-        var query = new Bmob.Query(ResultList); 
-        var ctx = this;
-        query.find({
-            success:function(res){
-                if(res.length === 1){
-                    //已经生成过今天的分队结果 不再重新生成
-                    if(res[0].createdAt.indexOf(nowStr) > 0){
-                        ctx.setState({
-                            result : res[0].attributes.resultObj,
-                            inTime : true
-                        })
-                        console.log("今天的结果数据早已生成，直接拿来用就行")
-                    }else{
-                        ctx.cleanResult(ctx.saveDevideResult.bind(ctx))
-                    }
-
-                }else{
-                    var result = {
-                        teamA:teamA,
-                        teamB:teamB,
-                    }
-                    setData.set('resultObj',result)
-                    setData.save(null, {
-                        success: function(object) {
-                            console.log("分队记录上传成功")
-                            ctx.setState({
-                                result : result,
-                                inTime : true
-                            })
-                        },
-                        error: function(model, error) {
-                            alert('分队记录保存失败接口错误');
-                        }
-                    });
+        let ResultList = Bmob.Object.extend("resultList");
+        // eslint-disable-next-line
+        let setData = new ResultList()
+        this.queryResult((res)=>{
+            if(res.length === 1){
+                // eslint-disable-next-line
+                ctx.cleanResult(ctx.saveDevideResult.bind(ctx))
+            }else{
+                var result = {
+                    teamA:teamA,
+                    teamB:teamB,
                 }
-            },
-            erro:function(error){
-                alert("查询分队记录失败: " + error.code + " " + error.message);
+                // eslint-disable-next-line
+                setData.set('resultObj',result)
+                // eslint-disable-next-line
+                setData.save(null, {
+                    success: function(object) {
+                        console.log("分队记录上传成功")
+                        // eslint-disable-next-line
+                        ctx.setState({
+                            result : result
+                        })
+                    },
+                    error: function(model, error) {
+                        alert('分队记录保存失败接口错误');
+                    }
+                });
             }
         })
     }
@@ -485,7 +493,7 @@ class App extends Component {
                     <ReportList reportList = {this.state.reportList}/>
                 </Col>
                 <Col xs={{ span: 22, offset:1}} md={{ span: 14,offset:0}}>
-                    <GroupInfo inTime = {this.state.inTime} result = {this.state.result} />
+                    <GroupInfo result = {this.state.result} />
                 </Col>
             </Row>
             </div>
