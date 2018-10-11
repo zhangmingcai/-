@@ -15,7 +15,7 @@ import GroupInfo from './GroupInfo';
 var chosedMan = {},leftPlayerList = [],teamA = [],teamB = [],max = 0;
 var randomTimes = 0;
 var timeTody = new Date()
-var nowStr = (timeTody.getMonth() + 1)+"-"+ (timeTody.getDay() > 9 ? timeTody.getDay() : "0"+ timeTody.getDate())
+var nowStr = (timeTody.getMonth() + 1)+"-"+ (timeTody.getDate() > 9 ? timeTody.getDate() : "0"+ timeTody.getDate())
 //nowStr = "10-08"
 class Player extends Component {
     constructor(props){
@@ -93,12 +93,16 @@ class App extends Component {
                 startDevide : true
             })
             this.loadReportPlayers();
-        }else{
-            console.log('13点后进入页面提示每天12点更新结果')
-            this.setState({
-                inTime : false
-            })
+        }else if(h > 8 && h < 13){
+            /*清除前一天的报名数据 展示截至目前报名数据*/
             this.loadReportPlayers();
+            
+        }else{
+            console.log('13点后进入页面提示每天12点更新结果不展示今天上午的报名列表')
+            this.setState({
+                inTime : false,
+                reportList : []
+            })
         }
     }
     initClock(){
@@ -124,14 +128,14 @@ class App extends Component {
             }
         );
     }
-    //请求所有已经报名球员列表
+    //请求所有已经报名球员列表 进入页面没过中午一点或者到分队时会调用
     loadReportPlayers(){
         // eslint-disable-next-line
         var ReportList = Bmob.Object.extend("reportList");
         // eslint-disable-next-line
         var query = new Bmob.Query(ReportList)
         console.log("查询已经报名的球员列表")
-        var ctx = this;
+        var ctx = this; 
         query.limit(20);
         /*
         每天第一个打开该页面就会先清除报名列表中前一天的数据
@@ -143,13 +147,13 @@ class App extends Component {
             success:function(res){
                 let resFilter = [];
                 if(res.length){
-                    //检查报名列表中是否含有之前的数据，若有则清空报名表
                     for (var i = 0; i < res.length; i++) {
+                        /*reportlist中只能含有当天的数据 若不是当天的就清除*/
                         if(res[i].createdAt.indexOf(nowStr) < 0){
                             (function(myObject){
                                 myObject.destroy({
                                     success: function(myObject) {
-                                        console.log(myObject,"今日之前的报名数据清除成功")
+                                        console.log(myObject,"报名列表中含有的今日之前的报名数据清除成功")
                                     },
                                     error: function(myObject, error) {
                                         alert("清除失败: " + error.code + " " + error.message);
@@ -471,7 +475,7 @@ class App extends Component {
                 </Col>
                 <Col xs={{ span: 10 ,offset:1}} md={{ span: 5,offset:0}}>
                     <Player playersList = {this.state.playersList}  />
-                </Col>,
+                </Col>
                 <Col xs={{ span: 10 ,offset:2}} md={{ span: 4,offset:1}}>
                     <Button className="btnStart" onClick={this.doReport.bind(this)} style={{marginTop:'74px'}} type="primary" size="large" block>今天就干！</Button>
                 </Col>

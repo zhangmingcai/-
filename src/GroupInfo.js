@@ -8,7 +8,6 @@ import "./css/bannerStyle.css"
 class GroupInfo extends Component {
 	constructor(props){
 		super(props)
-		console.log("分队组件传入信息",props.result)
 
 	}
 
